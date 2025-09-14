@@ -6,6 +6,7 @@ import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.Size;
 import java.io.Serializable;
 import java.util.Date;
+import java.util.List;
 
 @Entity
 @Table(name = "users")
@@ -33,6 +34,23 @@ public class User implements Serializable {
 
     @Temporal(TemporalType.TIMESTAMP)
     private Date updatedAt;
+
+    private boolean active = true;
+
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date lastLogin;
+
+    private String fullName;
+
+    private String status;
+
+    @ManyToMany
+    private List<Role> roles;
+
+    @ManyToMany
+    private List<Permission> permissions;
+
+    private String tenantId;
 
     @PrePersist
     protected void onCreate() {
@@ -91,5 +109,61 @@ public class User implements Serializable {
 
     public void setUpdatedAt(Date updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
+    }
+
+    public Date getLastLogin() {
+        return lastLogin;
+    }
+
+    public void setLastLogin(Date lastLogin) {
+        this.lastLogin = lastLogin;
+    }
+
+    public String getFullName() {
+        return fullName;
+    }
+
+    public void setFullName(String fullName) {
+        this.fullName = fullName;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public List<Role> getRoles() {
+        return roles;
+    }
+
+    public void setRoles(List<Role> roles) {
+        this.roles = roles;
+    }
+
+    public List<Permission> getPermissions() {
+        return permissions;
+    }
+
+    public void setPermissions(List<Permission> permissions) {
+        this.permissions = permissions;
+    }
+
+    public String getTenantId() {
+        return tenantId;
+    }
+
+    public void setTenantId(String tenantId) {
+        this.tenantId = tenantId;
     }
 }
