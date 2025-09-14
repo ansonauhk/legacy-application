@@ -29,6 +29,7 @@ public class KeystoreConfig {
     private String keystoreAlias;
 
     private KeyStore keyStore;
+    private KeyStore secretKeyStore;
 
     @PostConstruct
     public void initKeystore() {
@@ -37,6 +38,7 @@ public class KeystoreConfig {
             keystoreFile.getParentFile().mkdirs();
 
             keyStore = KeyStore.getInstance("JKS");
+            secretKeyStore = KeyStore.getInstance("JCEKS");
 
             if (keystoreFile.exists()) {
                 try (FileInputStream fis = new FileInputStream(keystoreFile)) {
@@ -48,6 +50,20 @@ public class KeystoreConfig {
                 generateSelfSignedCertificate();
                 saveKeystore();
                 System.out.println("Created new keystore at: " + keystorePath);
+            }
+
+            String secretStorePath = keystorePath.replace(".jks", "-secrets.jceks");
+            File secretStoreFile = new File(secretStorePath);
+            if (secretStoreFile.exists()) {
+                try (FileInputStream fis = new FileInputStream(secretStoreFile)) {
+                    secretKeyStore.load(fis, keystorePassword.toCharArray());
+                    System.out.println("Loaded existing secret keystore from: " + secretStorePath);
+                }
+            } else {
+                secretKeyStore.load(null, keystorePassword.toCharArray());
+                storeSecrets();
+                saveSecretKeystore();
+                System.out.println("Created new secret keystore at: " + secretStorePath);
             }
 
             listKeystoreEntries();
@@ -91,18 +107,8 @@ public class KeystoreConfig {
         cert.sign(keyPair.getPrivate(), "SHA256withRSA");
 
         Certificate[] chain = new Certificate[] { cert };
-        keyStore.setKeyEntry(keystoreAlias, keyPair.getPrivate(), 
+        keyStore.setKeyEntry(keystoreAlias, keyPair.getPrivate(),
                            keystorePassword.toCharArray(), chain);
-
-        SecretKey apiKey = generateSecretKey();
-        keyStore.setKeyEntry("api-key",
-                           apiKey,
-                           keystorePassword.toCharArray(), null);
-
-        SecretKey dbPasswordKey = new SecretKeySpec("mySecureDBPassword123".getBytes(), "AES");
-        keyStore.setKeyEntry("db-password",
-                           dbPasswordKey,
-                           keystorePassword.toCharArray(), null);
     }
 
     private SecretKey generateSecretKey() throws NoSuchAlgorithmException {
@@ -111,9 +117,28 @@ public class KeystoreConfig {
         return keyGen.generateKey();
     }
 
+    private void storeSecrets() throws Exception {
+        SecretKey apiKey = generateSecretKey();
+        KeyStore.SecretKeyEntry apiKeyEntry = new KeyStore.SecretKeyEntry(apiKey);
+        secretKeyStore.setEntry("api-key", apiKeyEntry,
+                         new KeyStore.PasswordProtection(keystorePassword.toCharArray()));
+
+        SecretKey dbPasswordKey = new SecretKeySpec("mySecureDBPassword123".getBytes(), "AES");
+        KeyStore.SecretKeyEntry dbPasswordEntry = new KeyStore.SecretKeyEntry(dbPasswordKey);
+        secretKeyStore.setEntry("db-password", dbPasswordEntry,
+                         new KeyStore.PasswordProtection(keystorePassword.toCharArray()));
+    }
+
     private void saveKeystore() throws Exception {
         try (FileOutputStream fos = new FileOutputStream(keystorePath)) {
             keyStore.store(fos, keystorePassword.toCharArray());
+        }
+    }
+
+    private void saveSecretKeystore() throws Exception {
+        String secretStorePath = keystorePath.replace(".jks", "-secrets.jceks");
+        try (FileOutputStream fos = new FileOutputStream(secretStorePath)) {
+            secretKeyStore.store(fos, keystorePassword.toCharArray());
         }
     }
 
@@ -122,8 +147,15 @@ public class KeystoreConfig {
         Enumeration<String> aliases = keyStore.aliases();
         while (aliases.hasMoreElements()) {
             String alias = aliases.nextElement();
-            System.out.println("  - " + alias + " (" + 
+            System.out.println("  - " + alias + " (" +
                              (keyStore.isKeyEntry(alias) ? "key" : "certificate") + ")");
+        }
+
+        System.out.println("Secret keystore entries:");
+        Enumeration<String> secretAliases = secretKeyStore.aliases();
+        while (secretAliases.hasMoreElements()) {
+            String alias = secretAliases.nextElement();
+            System.out.println("  - " + alias + " (secret key)");
         }
     }
 
@@ -134,7 +166,10 @@ public class KeystoreConfig {
 
     public String getSecret(String alias) {
         try {
-            Key key = keyStore.getKey(alias, keystorePassword.toCharArray());
+            Key key = secretKeyStore.getKey(alias, keystorePassword.toCharArray());
+            if (key == null) {
+                key = keyStore.getKey(alias, keystorePassword.toCharArray());
+            }
             if (key != null) {
                 byte[] keyBytes = key.getEncoded();
                 return Base64.getEncoder().encodeToString(keyBytes);
@@ -148,10 +183,10 @@ public class KeystoreConfig {
     public void storeSecret(String alias, String secret) {
         try {
             SecretKey secretKey = new SecretKeySpec(secret.getBytes(), "AES");
-            keyStore.setKeyEntry(alias,
-                               secretKey,
-                               keystorePassword.toCharArray(), null);
-            saveKeystore();
+            KeyStore.SecretKeyEntry secretKeyEntry = new KeyStore.SecretKeyEntry(secretKey);
+            secretKeyStore.setEntry(alias, secretKeyEntry,
+                             new KeyStore.PasswordProtection(keystorePassword.toCharArray()));
+            saveSecretKeystore();
         } catch (Exception e) {
             System.err.println("Error storing secret: " + e.getMessage());
         }
