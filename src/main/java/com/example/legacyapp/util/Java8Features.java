@@ -14,6 +14,17 @@ import java.lang.reflect.Field;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * Legacy demonstration class intentionally showcasing Java 8 patterns that break in Java 11+.
+ *
+ * This class exists to demonstrate migration challenges when upgrading from Java 8:
+ * - Uses sun.misc.BASE64Encoder/Decoder (removed in Java 11, replace with java.util.Base64)
+ * - Uses sun.misc.Unsafe internal API (restricted in Java 9+)
+ * - Contains finalize() method (deprecated in Java 9, removed in later versions)
+ * - Shows Guava functional patterns that can be replaced with Java 8+ streams
+ *
+ * DO NOT use these patterns in production code. This is a teaching tool for modernization.
+ */
 @Component
 public class Java8Features {
 
