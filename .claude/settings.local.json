@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "Bash(touch:*)",
+      "Bash(mvn clean:*)",
+      "Bash(java:*)",
+      "Bash(set JAVA_HOME=C:Usersanson.jdkscorretto-1.8.0_462)",
+      "Bash(\"C:\\Users\\anson\\.jdks\\corretto-1.8.0_462\\bin\\javac\" -version)",
+      "Bash(\"C:\\Users\\anson\\.jdks\\corretto-1.8.0_462\\bin\\javac\" -cp \"src\\main\\java\" -d targetclasses srcmainjavacomexamplelegacyappLegacyApplication.java)",
+      "Bash(if not exist target mkdir target)",
+      "Bash(if not exist targetclasses mkdir targetclasses)",
+      "Bash(cmd /c \"if not exist target mkdir target && if not exist target\\classes mkdir target\\classes && echo Directories created\")",
+      "Bash(powershell:*)",
+      "Bash(sudo apt:*)",
+      "Bash(sudo apt install:*)",
+      "Bash(apt list:*)",
+      "Bash(\"/mnt/c/Users/anson/.jdks/corretto-1.8.0_462/bin/java.exe\" -version)",
+      "Bash(git init:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git config:*)",
+      "Bash(mvn:*)",
+      "Bash(curl:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
